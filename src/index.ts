@@ -1,15 +1,24 @@
-import { Client, Events } from "discord.js";
+import { Client, Events, GatewayIntentBits, Partials } from "discord.js";
 import { config } from "./config";
 import { commands } from "./commands";
 import { deployCommands } from "./deploy-commands";
 import { startScheduledJobs } from "./scheduler";
+import { restoreGiveaways } from "./giveaway-utils";
 
 // Event handlers
 import { handleMessageCreate } from "./events/messageCreate";
 
 // 클라이언트 생성
 const client = new Client({
-    intents: ["Guilds", "GuildMessages", "DirectMessages", "GuildMembers", "GuildVoiceStates"],
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMessageReactions
+    ],
+    partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
 // 봇이 준비되었을 때의 이벤트 핸들러
@@ -28,6 +37,10 @@ client.once(Events.ClientReady, () => {
     // 스케줄러 시작
     startScheduledJobs(client);
     console.log("스케줄러가 시작되었습니다.");
+
+    // 추첨 복구
+    restoreGiveaways(client);
+    console.log("추첨 복구가 완료되었습니다.");
 });
 
 // 인터랙션 핸들러

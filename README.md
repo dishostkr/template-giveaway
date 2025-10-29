@@ -1,13 +1,36 @@
-# Discord.js TypeScript Boilerplate
+# Discord.js TypeScript 추첨(Giveaway) 봇 템플릿
 
-이 리포지토리는 Discord.js(v14)와 TypeScript로 만든 간단한 봇 템플릿입니다. 빠르게 봇을 시작하고 커맨드/이벤트 구조를 따르기 쉽게 구성되어 있습니다.
+이 리포지토리는 Discord.js(v14)와 TypeScript로 만든 추첨(Giveaway) 봇 템플릿입니다. 슬래시 커맨드로 추첨을 생성하고 관리하며, 봇 재시작 시에도 모든 추첨이 자동으로 복구됩니다.
 
 ## 주요 기능
-- TypeScript 기반 구조
-- 명령어(commands)와 이벤트(events) 분리
-- 슬래시 커맨드 배포 스크립트(`src/deploy-commands.ts`)
-- 간단한 스케줄러 예시(`src/scheduler.ts`)
-- 환경 변수(.env) 사용 (`dotenv`)
+- **추첨 생성 및 관리**: 슬래시 커맨드로 추첨 이벤트를 쉽게 생성하고 관리
+- **자동 복구**: 봇이 재시작되어도 진행 중인 추첨이 자동으로 복구
+- **다국어 지원**: 한국어 로컬라이제이션 내장 (Discord.js 내장 함수 사용)
+- **시간 변환**: 사용자 친화적인 시간 형식 (예: 1d 12h 30m)
+- **파일 기반 저장소**: 별도 데이터베이스 없이 JSON 파일로 관리
+
+## 추첨 명령어
+
+### `/giveaway start` (추첨 시작)
+새로운 추첨을 시작합니다.
+- **기간**: 추첨 기간 (예: 1d, 12h, 30m, 1d 12h 30m)
+- **당첨자수**: 당첨자 수
+- **경품**: 추첨 경품
+- **채널**: 추첨을 게시할 채널 (선택 사항, 기본값: 현재 채널)
+
+### `/giveaway reroll` (재추첨)
+종료된 추첨의 당첨자를 다시 뽑습니다.
+- **메시지-id**: 추첨 메시지 ID
+
+### `/giveaway end` (조기 종료)
+진행 중인 추첨을 조기 종료합니다.
+- **메시지-id**: 추첨 메시지 ID
+
+## 기술 스택
+- **언어**: Node.js + TypeScript
+- **라이브러리**: Discord.js v14 (Partials 활성화)
+- **데이터 저장**: giveaways.json (루트 디렉터리)
+- **시간 변환**: ms 라이브러리
 
 ## 요구사항
 - Node.js 18 이상 권장
@@ -68,18 +91,43 @@ npm start
 
 ```
 src/
-  config.ts           # dotenv 로 환경변수 로드 및 검증
-  deploy-commands.ts  # 슬래시 커맨드(등록) 스크립트 예시
-  index.ts            # 엔트리 포인트
-  scheduler.ts        # 스케줄 예시
-  commands/           # 커맨드 정의 폴더
+  config.ts                # dotenv로 환경변수 로드 및 검증
+  deploy-commands.ts       # 슬래시 커맨드(등록) 스크립트
+  index.ts                 # 엔트리 포인트
+  scheduler.ts             # 스케줄 예시
+  giveaway-utils.ts        # 추첨 유틸리티 함수 (복구, 종료 등)
+  commands/                # 커맨드 정의 폴더
+    giveaway.ts            # 추첨 명령어
     ping.ts
-    index.ts          # 커맨드 로더
-  events/             # 이벤트 핸들러
+    index.ts               # 커맨드 로더
+  events/                  # 이벤트 핸들러
     messageCreate.ts
+giveaways.json             # 추첨 데이터 저장 파일
 ```
 
 새 커맨드나 이벤트를 추가할 때는 기존 구조를 참고해 `commands`/`events`에 파일을 추가하면 됩니다.
+
+## 핵심 기능 설명
+
+### 1. 추첨 복구 (Persistence)
+봇이 시작되면 `giveaways.json` 파일에서 활성 추첨을 읽어와 자동으로 복구합니다:
+- 종료 시간이 지난 추첨: 즉시 `endGiveaway()` 실행
+- 종료 시간이 남은 추첨: 남은 시간만큼 타이머 재설정
+
+### 2. 추첨 종료 처리
+`endGiveaway()` 함수는 다음을 수행합니다:
+1. 메시지의 🎉 반응을 가져와 참가자 목록 생성
+2. 당첨자를 랜덤으로 선정
+3. 결과를 한국어로 공지
+4. 원본 임베드를 "추첨 종료" 상태로 수정
+5. `giveaways.json`에서 상태 업데이트 (isActive: false)
+
+### 3. 시간 형식
+`ms` 라이브러리를 사용하여 사용자 친화적인 시간 형식을 지원합니다:
+- `1d` = 1일
+- `12h` = 12시간
+- `30m` = 30분
+- `1d 12h 30m` = 1일 12시간 30분 (조합 가능)
 
 ## 슬래시 커맨드 배포
 
